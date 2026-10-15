@@ -1,0 +1,62 @@
+name: publish
+
+on:
+  push:
+    branches: [main]
+    paths: ['packages/**']
+  workflow_dispatch:
+
+# one publish at a time; never cancel an in-flight publish
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      # Single package for now (packages/mupdf-wasm); when a second package
+      # lands, switch to npm workspaces + changesets.
+      - name: Publish when registry version differs
+        id: pub
+        working-directory: packages/mupdf-wasm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "NPM_TOKEN secret not configured yet — skipping publish"
+            exit 0
+          fi
+          NAME=$(node -p "require('./package.json').name")
+          PKG=$(node -p "require('./package.json').version")
+          LIVE=$(npm view "$NAME" version 2>/dev/null || echo none)
+          echo "$NAME: package.json=$PKG registry=$LIVE"
+          if [ "$PKG" = "$LIVE" ]; then
+            echo "version $PKG already published — nothing to do"
+            exit 0
+          fi
+          npm publish --access public
+          echo "published=$PKG" >> "$GITHUB_OUTPUT"
+
+      - name: GitHub release (idempotent archive)
+        if: steps.pub.outputs.published != ''
+        working-directory: packages/mupdf-wasm
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="${{ steps.pub.outputs.published }}"
+          gh release create "v$V" \
+            mupdf.js mupdf-wasm.js mupdf-wasm.wasm mupdf.d.ts mupdf-wasm.d.ts \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "@quickwinlabs/mupdf-wasm $V" \
+            --notes "MuPDF WASM tailored for QuickWin/WAMR. See packages/mupdf-wasm/README.md for build provenance." \
+            || echo "release v$V already exists"

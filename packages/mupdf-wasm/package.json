@@ -1,0 +1,44 @@
+{
+  "name": "@quickwinlabs/mupdf-wasm",
+  "version": "1.28.0",
+  "description": "MuPDF compiled to WebAssembly for QuickWin's WAMR runtime (JS longjmp, no wasm exceptions)",
+  "type": "module",
+  "main": "mupdf.js",
+  "types": "mupdf.d.ts",
+  "exports": {
+    ".": {
+      "types": "./mupdf.d.ts",
+      "default": "./mupdf.js"
+    },
+    "./mupdf-wasm.wasm": "./mupdf-wasm.wasm"
+  },
+  "files": [
+    "mupdf.js",
+    "mupdf-wasm.js",
+    "mupdf-wasm.wasm",
+    "mupdf.d.ts",
+    "mupdf-wasm.d.ts",
+    "LICENSE",
+    "README.md",
+    "build.sh",
+    "patches/"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/quickwinlabs/quickwin-packages.git",
+    "directory": "packages/mupdf-wasm"
+  },
+  "homepage": "https://github.com/quickwinlabs/quickwin-packages",
+  "bugs": {
+    "url": "https://github.com/quickwinlabs/quickwin-packages/issues"
+  },
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "mupdf",
+    "pdf",
+    "webassembly",
+    "wasm",
+    "quickwin",
+    "wamr"
+  ]
+}

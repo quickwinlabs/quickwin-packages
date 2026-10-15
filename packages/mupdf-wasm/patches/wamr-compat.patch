@@ -1,0 +1,76 @@
+diff --git a/Makerules b/Makerules
+index ec29b95..240f6a1 100644
+--- a/Makerules
++++ b/Makerules
+@@ -368,8 +368,7 @@ ifeq "$(OS)" "wasm"
+   HAVE_OBJCOPY=no
+   HAVE_LIBCRYPTO=no
+   CFLAGS += -mno-nontrapping-fptoint
+-  CFLAGS += -fwasm-exceptions
+-  CFLAGS += -sSUPPORT_LONGJMP=wasm
++  CFLAGS += -sSUPPORT_LONGJMP=1
+ endif
+ 
+ ifeq "$(OS)" "wasm-mt"
+@@ -382,8 +381,7 @@ ifeq "$(OS)" "wasm-mt"
+   HAVE_OBJCOPY=no
+   HAVE_LIBCRYPTO=no
+   CFLAGS += -mno-nontrapping-fptoint
+-  CFLAGS += -fwasm-exceptions
+-  CFLAGS += -sSUPPORT_LONGJMP=wasm
++  CFLAGS += -sSUPPORT_LONGJMP=1
+   CFLAGS += -pthread
+ endif
+ 
+diff --git a/platform/wasm/tools/build.sh b/platform/wasm/tools/build.sh
+index f288d36..d86ab33 100755
+--- a/platform/wasm/tools/build.sh
++++ b/platform/wasm/tools/build.sh
+@@ -12,7 +12,7 @@
+ # SUFFIX should be a tag to keep build files for different configurations separate
+ #
+ 
+-EMSDK=${EMSDK:-/opt/emsdk}
++EMSDK=${EMSDK:-/tmp/emsdk}
+ BUILD=${BUILD:-small}
+ DEFINES=${DEFINES:--DTOFU -DTOFU_CJK_EXT -DFZ_ENABLE_HYPHEN=0}
+ FEATURES=${FEATURES:-brotli=no mujs=no extract=no xps=no svg=no}
+@@ -25,9 +25,6 @@ fi
+ export EMSDK_QUIET=1
+ source $EMSDK/emsdk_env.sh
+ 
+-emsdk install 4.0.8 >/dev/null || exit
+-emsdk activate 4.0.8 >/dev/null || exit
+-
+ mkdir -p dist
+ rm -f dist/*
+ 
+@@ -50,8 +47,7 @@ emcc -o dist/mupdf-wasm.js \
+ 	$MEMENTO \
+ 	--no-entry \
+ 	-mno-nontrapping-fptoint \
+-	-fwasm-exceptions \
+-	-sSUPPORT_LONGJMP=wasm \
++	-sSUPPORT_LONGJMP=1 \
+ 	-sMODULARIZE=1 \
+ 	-sEXPORT_ES6=1 \
+ 	-sEXPORT_NAME='"libmupdf_wasm"' \
+@@ -66,6 +62,9 @@ emcc -o dist/mupdf-wasm.js \
+ # remove executable bit from wasm-ld output
+ chmod -x dist/mupdf-wasm.wasm
+ 
++echo "WAT"
++$EMSDK/upstream/bin/wasm-dis dist/mupdf-wasm.wasm -o dist/mupdf-wasm.wat
++
+ echo "TYPESCRIPT"
+ 
+ sed < lib/mupdf.c '/#include/d' | emcc -E - | node tools/make-wasm-type.js > lib/mupdf-wasm.d.ts
+@@ -76,7 +75,5 @@ npx tsc -p .
+ # convert spaces to tabs
+ sed -i -e 's/    /\t/g' dist/mupdf.js
+ 
+-echo "TERSER"
+-
+-npx terser --module -c -m -o dist/mupdf-wasm.js dist/mupdf-wasm.js
++# echo "TERSER"
+ # npx terser --module -c -m -o dist/mupdf.min.js dist/mupdf.js
