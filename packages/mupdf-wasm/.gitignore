@@ -1,0 +1,8 @@
+# Build artifacts — produced by build.sh, published to npm + GitHub Release,
+# never committed (keeps repo small).
+dist/
+mupdf.js
+mupdf-wasm.js
+mupdf-wasm.wasm
+mupdf.d.ts
+mupdf-wasm.d.ts
