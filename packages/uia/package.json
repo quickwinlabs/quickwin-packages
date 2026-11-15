@@ -1,7 +1,7 @@
 {
   "name": "@quickwinlabs/uia",
-  "version": "0.1.0",
-  "description": "UI Automation (UIA) helpers for QuickWin — Win11 taskbar tray icon enumeration",
+  "version": "0.2.0",
+  "description": "UI Automation (UIA) generic client for QuickWin — typed IUIAutomation wrapper (element reads, tree walk, conditions, patterns)",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -21,10 +21,10 @@
     "README.md"
   ],
   "peerDependencies": {
-    "quickwin": ">=3.4.3"
+    "quickwin": ">=3.4.4"
   },
   "devDependencies": {
-    "quickwin": "3.4.3",
+    "quickwin": "3.4.4",
     "typescript": "^5.4.0"
   },
   "repository": {
