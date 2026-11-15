@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Rebuild the QuickWin/WAMR-tailored mupdf-wasm from source.
 #
-# The committed artifacts (mupdf.js / mupdf-wasm.js / mupdf-wasm.wasm / *.d.ts)
-# in this directory are produced by this script; it exists so anyone can audit
-# and reproduce them. CI publishes the committed artifacts as-is.
+# The artifacts (mupdf.js / mupdf-wasm.js / mupdf-wasm.wasm / *.d.ts) are
+# produced by this script and never committed (see .gitignore); it exists so
+# anyone can audit and reproduce them. CI runs it before `npm pack`.
 #
 # Build inputs (must match README.md):
 #   - mupdf commit:  05c6564035d20e3ed1998ffa392c9d17b2cd6a45

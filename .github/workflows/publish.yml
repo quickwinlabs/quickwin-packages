@@ -14,8 +14,6 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v5
 
@@ -24,54 +22,77 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      # emsdk is big (~hundreds of MB); build.sh clones it to /tmp/emsdk when
-      # absent. Cache it so a rebuild only pays the mupdf compile cost.
+      # emsdk is big (~hundreds of MB); mupdf-wasm's build.sh clones it to
+      # /tmp/emsdk when absent (version pinned in that script). Cache it so a
+      # rebuild only pays the mupdf compile cost. Drop this step once no
+      # package builds with emscripten.
       - name: Cache emsdk
         uses: actions/cache@v4
         with:
           path: /tmp/emsdk
           key: emsdk-4.0.8
 
-      # Artifacts are NOT committed to git (see packages/mupdf-wasm/.gitignore);
-      # build.sh reproduces them from the pinned mupdf commit + emsdk + patch,
-      # then lays them out in the package root for npm pack.
-      - name: Build artifacts
-        working-directory: packages/mupdf-wasm
-        run: ./build.sh
-
-      # Single package for now (packages/mupdf-wasm); when a second package
-      # lands, switch to npm workspaces + changesets.
-      - name: Publish when registry version differs
-        id: pub
-        working-directory: packages/mupdf-wasm
+      # Every package is self-contained: its own package.json version, its own
+      # `npm run build` recipe (artifacts are never committed, each package's
+      # .gitignore lists them). The loop only builds a package whose exact
+      # version is missing from the registry, so bumping one package never
+      # rebuilds the others.
+      #
+      # Per package: build → npm publish.
+      - name: Build and publish new versions
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
+          set -uo pipefail
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
             echo "NPM_TOKEN secret not configured yet — skipping publish"
             exit 0
           fi
-          NAME=$(node -p "require('./package.json').name")
-          PKG=$(node -p "require('./package.json').version")
-          LIVE=$(npm view "$NAME" version 2>/dev/null || echo none)
-          echo "$NAME: package.json=$PKG registry=$LIVE"
-          if [ "$PKG" = "$LIVE" ]; then
-            echo "version $PKG already published — nothing to do"
-            exit 0
-          fi
-          npm publish --access public
-          echo "published=$PKG" >> "$GITHUB_OUTPUT"
 
-      - name: GitHub release (idempotent archive)
-        if: steps.pub.outputs.published != ''
-        working-directory: packages/mupdf-wasm
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          V="${{ steps.pub.outputs.published }}"
-          gh release create "v$V" \
-            mupdf.js mupdf-wasm.js mupdf-wasm.wasm mupdf.d.ts mupdf-wasm.d.ts \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "@quickwinlabs/mupdf-wasm $V" \
-            --notes "MuPDF WASM tailored for QuickWin/WAMR. See packages/mupdf-wasm/README.md for build provenance." \
-            || echo "release v$V already exists"
+          failed=""
+          for pkgjson in packages/*/package.json; do
+            [ -e "$pkgjson" ] || continue
+            dir=$(dirname "$pkgjson")
+            name=$(node -p "require('./$pkgjson').name")
+            version=$(node -p "require('./$pkgjson').version")
+
+            live=$(npm view "$name@$version" version 2>/dev/null || true)
+            if [ "$live" = "$version" ]; then
+              echo "skip $name@$version — already on npm"
+              continue
+            fi
+
+            echo "::group::$name@$version"
+            # Run the build in a plain subshell and read $? afterwards: inside
+            # `if ( ... )` or `( ... ) || ...` bash puts the subshell in a
+            # condition context and silently ignores `set -e`, so a failed
+            # build would fall through to publish.
+            (
+              set -euo pipefail
+              cd "$dir"
+
+              # Optional per-package dependency install (uia/tsc style builds).
+              if [ -f package-lock.json ]; then
+                npm ci --no-audit --no-fund
+              elif node -e "const p=require('./package.json');process.exit(p.dependencies||p.devDependencies?0:1)"; then
+                npm install --no-audit --no-fund
+              fi
+
+              node -e "const p=require('./package.json');if(!p.scripts?.build)throw new Error('package.json has no scripts.build')"
+              npm run build
+              npm publish --access public
+            )
+            rc=$?
+            if [ "$rc" -eq 0 ]; then
+              echo "published $name@$version"
+            else
+              echo "::error::$name@$version failed (rc=$rc)"
+              failed="$failed $name@$version"
+            fi
+            echo "::endgroup::"
+          done
+
+          if [ -n "$failed" ]; then
+            echo "::error::failed:$failed"
+            exit 1
+          fi

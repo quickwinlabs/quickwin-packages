@@ -16,7 +16,8 @@ keeps the module unminified for debuggability.
 
 The patch removes `-fwasm-exceptions` and switches `-sSUPPORT_LONGJMP=wasm`
 to `=1`, and skips terser. See [`build.sh`](build.sh) to reproduce the
-artifacts from source (auditors: run it and diff against the committed files).
+artifacts from source (auditors: run it and diff against the files in the
+published tarball; they are not committed to git).
 
 ## Runtime requirements (QuickWin side)
 

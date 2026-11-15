@@ -12,6 +12,9 @@
     },
     "./mupdf-wasm.wasm": "./mupdf-wasm.wasm"
   },
+  "scripts": {
+    "build": "./build.sh"
+  },
   "files": [
     "mupdf.js",
     "mupdf-wasm.js",

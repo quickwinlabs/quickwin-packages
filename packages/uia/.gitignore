@@ -1,0 +1,5 @@
+# Build artifacts — produced by `npm run build` (tsc), published to npm,
+# never committed (keeps repo small).
+dist/
+node_modules/
+package-lock.json

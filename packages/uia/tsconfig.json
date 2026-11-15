@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noImplicitAny": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "allowJs": false,
+    "lib": ["ES2022"],
+    "rootDir": "src",
+    "outDir": "dist",
+    "declaration": true,
+    // 引入 quickwin 的 quickwin.d.ts：其中 declare module "ffi" 等环境声明是
+    // quickwin/lib/* 各子路径模块类型解析的前提（ffi / gui / os 是 QuickWin 运行时
+    // 内建，非 npm 包）。相对路径指向本包 node_modules（publish workflow 在包内
+    // `npm install`，不会 hoist 到仓库外）。
+    "types": ["./node_modules/quickwin/quickwin.d.ts"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

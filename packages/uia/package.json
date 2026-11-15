@@ -1,0 +1,49 @@
+{
+  "name": "@quickwinlabs/uia",
+  "version": "0.1.0",
+  "description": "UI Automation (UIA) helpers for QuickWin — Win11 taskbar tray icon enumeration",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "files": [
+    "dist/",
+    "src/",
+    "tsconfig.json",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "quickwin": ">=3.4.3"
+  },
+  "devDependencies": {
+    "quickwin": "3.4.3",
+    "typescript": "^5.4.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/quickwinlabs/quickwin-packages.git",
+    "directory": "packages/uia"
+  },
+  "homepage": "https://github.com/quickwinlabs/quickwin-packages",
+  "bugs": {
+    "url": "https://github.com/quickwinlabs/quickwin-packages/issues"
+  },
+  "license": "MIT",
+  "keywords": [
+    "quickwin",
+    "uia",
+    "ui-automation",
+    "tray",
+    "taskbar",
+    "win11",
+    "windows"
+  ]
+}
