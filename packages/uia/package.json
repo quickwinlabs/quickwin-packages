@@ -1,6 +1,6 @@
 {
   "name": "@quickwinlabs/uia",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "UI Automation (UIA) generic client for QuickWin — typed IUIAutomation wrapper (element reads, tree walk, conditions, patterns)",
   "type": "module",
   "main": "dist/index.js",
@@ -16,8 +16,6 @@
   },
   "files": [
     "dist/",
-    "src/",
-    "tsconfig.json",
     "README.md"
   ],
   "peerDependencies": {

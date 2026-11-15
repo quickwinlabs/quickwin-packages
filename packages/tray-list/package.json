@@ -1,6 +1,6 @@
 {
   "name": "@quickwinlabs/tray-list",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Windows notification-area (system tray) icon enumeration for QuickWin — classic TB_GETBUTTON and UIA paths",
   "type": "module",
   "main": "dist/index.js",
@@ -16,8 +16,6 @@
   },
   "files": [
     "dist/",
-    "src/",
-    "tsconfig.json",
     "README.md"
   ],
   "peerDependencies": {
