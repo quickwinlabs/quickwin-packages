@@ -12,8 +12,9 @@
 //   IUIAutomationElementArray: get_Length=3  GetElement=4
 import * as ffi from 'ffi'
 import { bindAt } from 'quickwin/lib/ffi/bind.js'
-import { PtrArrayBuffer } from 'quickwin/lib/ffi/ctype.js'
-import { RECT } from 'quickwin/lib/windows/structs.js'
+import { NULL, PtrArrayBuffer, type MaybePtr } from 'quickwin/lib/ffi/ctype.js'
+import { RECT, POINT } from 'quickwin/lib/windows/structs.js'
+import { PostMessage, ScreenToClient } from 'quickwin/lib/windows/user32.js'
 import { FAILED } from 'quickwin/lib/com.js'
 import { release, vtable, bstr, SZ } from './com.js'
 import { patternAction, patternU32, withPattern } from './patterns.js'
@@ -48,9 +49,12 @@ export interface Rect {
 export class UiaElement {
     private ptr: number
     private client: UiaClient
-    constructor(ptr: number, client: UiaClient) {
+    /** 所属顶层窗口 hwnd（elementFromHandle 注入；后台点击 click() 用它定位） */
+    private ownerHwnd: MaybePtr<'HWND'>
+    constructor(ptr: number, client: UiaClient, ownerHwnd: MaybePtr<'HWND'> = NULL) {
         this.ptr = ptr
         this.client = client
+        this.ownerHwnd = ownerHwnd
     }
 
     // ── 属性 ──
@@ -221,6 +225,28 @@ export class UiaElement {
         return this.ptr ? patternU32(this.ptr, PatternId.Toggle, 4) : 0
     }
 
+    /** 后台点击元素 rect 中心（PostMessage WM_LBUTTONDOWN/UP + ScreenToClient 客户区坐标）。
+     *
+     * 非 UIA pattern（invoke/select）的兜底：Qt/自绘控件（微信 mmui::* 等）虽暴露为
+     * Button/ListItem，但不响应 UIA Invoke/SelectionItem pattern，须用输入注入触发。
+     * 与 SendInput/mouse_event 不同，PostMessage **不移动光标、不抢焦点**——纯后台，
+     * 不打断用户操作。要求元素来自 elementFromHandle(hwnd)（ownerHwnd 已注入）。
+     *
+     * 注意：这是「输入注入兜底」，非 UIA 标准 pattern；标准控件应优先用 invoke()/select()。 */
+    click(): void {
+        if (!this.ptr || !this.ownerHwnd) return
+        const r = this.rect()
+        if (!r) return
+        const cx = Math.round((r.left + r.right) / 2)
+        const cy = Math.round((r.top + r.bottom) / 2)
+        const pt = POINT.encode({ x: cx, y: cy })
+        ScreenToClient(this.ownerHwnd, pt.ptr)
+        const c = POINT.decode(pt)
+        const lp = ((c.y << 16) | (c.x & 0xffff)) >>> 0
+        PostMessage(this.ownerHwnd, 0x0201 /*WM_LBUTTONDOWN*/, 0x0001 /*MK_LBUTTON*/, lp)
+        PostMessage(this.ownerHwnd, 0x0202 /*WM_LBUTTONUP*/, 0, lp)
+    }
+
     /** 释放元素（幂等） */
     release(): void {
         if (this.ptr) {
@@ -232,7 +258,7 @@ export class UiaElement {
     // ── 内部 ──
 
     private wrap(ptr: number): UiaElement {
-        return new UiaElement(ptr, this.client)
+        return new UiaElement(ptr, this.client, this.ownerHwnd)
     }
 
     private readBstr(slot: number): string {

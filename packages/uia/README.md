@@ -64,6 +64,13 @@ el.value()         // ValuePattern current value
 el.setValue('x')   // ValuePattern.SetValue
 el.toggle()        // TogglePattern.Toggle
 el.toggleState()   // 0=Off 1=On 2=Indeterminate
+
+// 非 pattern 的输入注入兜底（仅 elementFromHandle 得到的元素）
+el.click()         // 后台点击 rect 中心：PostMessage WM_LBUTTONDOWN/UP + ScreenToClient
+                   // 不移动光标、不抢焦点（纯后台，不打断用户）
+                   // 适用 Qt/自绘控件（如微信 mmui::*）：虽暴露为 Button/ListItem，
+                   // 但不响应 UIA Invoke/SelectionItem pattern——须用 click() 触发。
+                   // 标准控件仍应优先 invoke()/select()。
 ```
 
 ## API
@@ -82,7 +89,8 @@ el.toggleState()   // 0=Off 1=On 2=Indeterminate
 - `UiaElement`: `name/className/localizedControlType/automationId/controlType/
   processId/isOffscreen/isEnabled/hasKeyboardFocus/isKeyboardFocusable/rect()`,
   `findFirst/findAll(scope, cond)`, `findAllWhere(scope, predicate)`,
-  `children()/descendants()`, pattern methods, `release()`.
+  `children()/descendants()`, pattern methods, `click()` (background click),
+  `release()`.
 - `TreeScope`, `ControlType`, `PropertyId` enums.
 
 ### Traps worth knowing (all verified on Win11 26200)

@@ -139,7 +139,8 @@ export class UiaClient {
         const out = new PtrArrayBuffer<'<UiaElement>ptr'>(8)
         if (!this.au) return null
         if (FAILED(bindAt(vtable(this.au, A_ELEMENT_FROM_HANDLE), '<>ptr <HWND>ptr <<UiaElement>ptr>ptr -> i32')(this.au, hwnd, out.ptr))) return null
-        return this.wrap(ffi.readPtr(out.ptr))
+        // ownerHwnd 注入：该窗口下元素的后台点击（click()）用此 hwnd 定位
+        return this.wrap(ffi.readPtr(out.ptr), hwnd)
     }
 
     /** 当前焦点元素；无焦点/失败 → null */
@@ -208,8 +209,8 @@ export class UiaClient {
 
     // ── 内部 ──
 
-    private wrap(ptr: number): UiaElement | null {
-        return ptr ? new UiaElement(ptr, this) : null
+    private wrap(ptr: number, ownerHwnd: MaybePtr<'HWND'> = NULL): UiaElement | null {
+        return ptr ? new UiaElement(ptr, this, ownerHwnd) : null
     }
 
     /** 调用一个「<>ptr <>ptr -> i32」取指针出参的方法 */
