@@ -50,7 +50,28 @@ jobs:
           fi
 
           failed=""
-          for pkgjson in packages/*/package.json; do
+          # 发布按依赖拓扑：被依赖的包先发布。字母序会把 tray-list（t）排在 uia（u）
+          # 前，而 tray-list 依赖 @quickwinlabs/uia——uia 未发布时 npm install 404。
+          sorted=$(node -e '
+            const fs = require("fs");
+            const dirs = fs.readdirSync("packages")
+              .filter(d => fs.existsSync(`packages/${d}/package.json`));
+            const pkgs = dirs.map(d => ({ d, p: JSON.parse(fs.readFileSync(`packages/${d}/package.json`)) }));
+            const names = new Set(pkgs.map(x => x.p.name));
+            const deps = new Map(pkgs.map(x => [x.p.name,
+              Object.keys({ ...x.p.peerDependencies, ...x.p.dependencies, ...x.p.devDependencies } || {})
+                .filter(n => names.has(n))]));
+            const order = []; const done = new Set();
+            while (order.length < pkgs.length) {
+              const next = pkgs
+                .filter(x => !done.has(x.p.name) && deps.get(x.p.name).every(d => done.has(d)))
+                .sort((a, b) => a.d.localeCompare(b.d))[0];
+              if (!next) break;
+              order.push(next.d); done.add(next.p.name);
+            }
+            console.log(order.map(d => `packages/${d}/package.json`).join(" "));
+          ')
+          for pkgjson in $sorted; do
             [ -e "$pkgjson" ] || continue
             dir=$(dirname "$pkgjson")
             name=$(node -p "require('./$pkgjson').name")
